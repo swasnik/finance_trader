@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "financial_agent"
+version = "0.1.0"
+description = "Multi-step financial analysis agent using LangGraph"
+requires-python = ">=3.11"
+authors = [
+    {name = "Squad", email = "team@financial-agent.local"}
+]
+
+dependencies = [
+    "langgraph>=0.2.0,<0.4.0",
+    "langchain>=0.3.0,<0.4.0",
+    "langchain-core>=0.3.0,<0.4.0",
+    "langchain-anthropic>=0.3.0,<0.4.0",
+    "langchain-openai>=0.2.0,<0.4.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0.0",
+    "typing-extensions>=4.0.0",
+    "yfinance>=0.2.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "httpx>=0.24.0",
+    "fredapi>=0.5.0",
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.23.0",
+    "aiofiles>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
