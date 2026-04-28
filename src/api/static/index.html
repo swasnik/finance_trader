@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #21262d;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --accent2:   #1f6feb;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --success:   #3fb950;
+      --error:     #f85149;
+      --warning:   #d29922;
+      --radius:    10px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 40px;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+    header p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .status-dot {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .dot.online  { background: var(--success); }
+    .dot.offline { background: var(--error); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    /* ── Query form ── */
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 7px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* ── Toggle ── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-wrap input[type="checkbox"] { display: none; }
+    .toggle {
+      width: 40px; height: 22px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      position: relative;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle-wrap input:checked + .toggle {
+      background: var(--accent2);
+      border-color: var(--accent2);
+    }
+    .toggle-wrap input:checked + .toggle::after {
+      transform: translateX(18px);
+      background: #fff;
+    }
+    .toggle-label { font-size: 0.9rem; color: var(--text); }
+
+    /* ── Submit button ── */
+    button[type="submit"] {
+      margin-left: auto;
+      padding: 9px 24px;
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    button[type="submit"]:hover:not(:disabled) { background: var(--accent); }
+    button[type="submit"]:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading .spinner { display: block; }
+    .loading .btn-text { display: none; }
+
+    /* ── Thread badge ── */
+    .thread-info {
+      margin-top: 12px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 18px;
+    }
+    .thread-badge {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      color: var(--accent);
+    }
+    .clear-thread {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.78rem;
+      padding: 0;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+    .clear-thread:hover { color: var(--error); }
+
+    /* ── Results section ── */
+    #results { margin-top: 24px; display: none; flex-direction: column; gap: 18px; }
+    #results.visible { display: flex; }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .result-card-header {
+      padding: 10px 18px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .result-card-header .icon { font-size: 14px; }
+
+    /* ── Analysis text ── */
+    #analysis-body {
+      padding: 18px;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 40px;
+    }
+    #analysis-body.streaming::after {
+      content: "▋";
+      animation: blink 0.8s step-end infinite;
+      color: var(--accent);
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Recommendations ── */
+    #reco-body {
+      padding: 14px 18px;
+    }
+    #reco-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #reco-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    #reco-list li::before {
+      content: "▸";
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ── Error box ── */
+    #error-box {
+      display: none;
+      background: rgba(248, 81, 73, 0.08);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      color: var(--error);
+      font-size: 0.9rem;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    #error-box.hidden { display: none; }
+    #error-box .err-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+    #error-text { word-break: break-word; }
+
+    /* ── Stream events log (collapsed by default) ── */
+    details.event-log {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    details.event-log summary {
+      padding: 10px 18px;
+      background: var(--surface2);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    details.event-log summary::-webkit-details-marker { display: none; }
+    details.event-log summary::before {
+      content: "▶";
+      font-size: 9px;
+      transition: transform 0.2s;
+    }
+    details[open].event-log summary::before { transform: rotate(90deg); }
+    #event-log-body {
+      padding: 14px 18px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+      max-height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .event-row { display: flex; gap: 10px; }
+    .event-row .ev-type {
+      flex-shrink: 0;
+      width: 120px;
+      color: var(--accent);
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">📈</div>
+    <div>
+      <h1>Financial Agent</h1>
+      <p>AI-powered multi-step financial analysis</p>
+    </div>
+    <div class="status-dot">
+      <span class="dot" id="health-dot"></span>
+      <span id="health-label">checking…</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <form id="query-form">
+        <div class="form-group">
+          <label for="query-input">Financial Query</label>
+          <textarea
+            id="query-input"
+            name="query"
+            placeholder="e.g. Analyze AAPL performance over the last quarter"
+            autocomplete="off"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <label class="toggle-wrap" title="Stream tokens as they arrive">
+            <input type="checkbox" id="stream-toggle" checked />
+            <span class="toggle"></span>
+            <span class="toggle-label">Stream</span>
+          </label>
+
+          <button type="submit" id="submit-btn">
+            <span class="spinner"></span>
+            <span class="btn-text">Analyze</span>
+          </button>
+        </div>
+
+        <div class="thread-info" id="thread-info">
+          <span id="thread-display"></span>
+        </div>
+      </form>
+    </div>
+
+    <div id="error-box" class="hidden">
+      <span class="err-icon">⚠</span>
+      <span id="error-text"></span>
+    </div>
+
+    <div id="results">
+      <div class="result-card" id="analysis-card">
+        <div class="result-card-header">
+          <span class="icon">🔍</span> Analysis
+        </div>
+        <div id="analysis-body"></div>
+      </div>
+
+      <div class="result-card" id="reco-card" style="display:none">
+        <div class="result-card-header">
+          <span class="icon">💡</span> Recommendations
+        </div>
+        <div id="reco-body">
+          <ul id="reco-list"></ul>
+        </div>
+      </div>
+
+      <details class="event-log" id="event-log-details" style="display:none">
+        <summary><span class="icon">📡</span> Stream events</summary>
+        <div id="event-log-body"></div>
+      </details>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── State ── */
+  const SESSION_KEY = "fa_thread_id";
+  let threadId = sessionStorage.getItem(SESSION_KEY) || null;
+
+  /* ── DOM refs ── */
+  const form         = document.getElementById("query-form");
+  const queryInput   = document.getElementById("query-input");
+  const streamToggle = document.getElementById("stream-toggle");
+  const submitBtn    = document.getElementById("submit-btn");
+  const healthDot    = document.getElementById("health-dot");
+  const healthLabel  = document.getElementById("health-label");
+  const threadDisplay= document.getElementById("thread-display");
+  const threadInfo   = document.getElementById("thread-info");
+  const errorBox     = document.getElementById("error-box");
+  const errorText    = document.getElementById("error-text");
+  const results      = document.getElementById("results");
+  const analysisBody = document.getElementById("analysis-body");
+  const recoCard     = document.getElementById("reco-card");
+  const recoList     = document.getElementById("reco-list");
+  const eventLogDetails = document.getElementById("event-log-details");
+  const eventLogBody = document.getElementById("event-log-body");
+
+  /* ── Thread helpers ── */
+  function saveThread(id) {
+    threadId = id;
+    if (id) sessionStorage.setItem(SESSION_KEY, id);
+    else sessionStorage.removeItem(SESSION_KEY);
+    renderThread();
+  }
+
+  function renderThread() {
+    if (threadId) {
+      threadDisplay.innerHTML =
+        `Thread: <span class="thread-badge">${threadId.slice(0, 8)}…</span> ` +
+        `<button class="clear-thread" id="clear-btn">new thread</button>`;
+      document.getElementById("clear-btn").addEventListener("click", () => {
+        saveThread(null);
+        clearResults();
+      });
+    } else {
+      threadDisplay.textContent = "No active thread — one will be created on first query.";
+    }
+  }
+
+  /* ── Health check ── */
+  async function checkHealth() {
+    try {
+      const res = await fetch("/health");
+      if (res.ok) {
+        healthDot.className = "dot online";
+        healthLabel.textContent = "API online";
+      } else {
+        throw new Error(res.status);
+      }
+    } catch {
+      healthDot.className = "dot offline";
+      healthLabel.textContent = "API offline";
+    }
+  }
+
+  /* ── UI helpers ── */
+  function setLoading(on) {
+    submitBtn.disabled = on;
+    submitBtn.classList.toggle("loading", on);
+    queryInput.disabled = on;
+    streamToggle.disabled = on;
+  }
+
+  function showError(msg) {
+    errorBox.classList.remove("hidden");
+    errorText.textContent = msg;
+  }
+
+  function hideError() {
+    errorBox.classList.add("hidden");
+    errorText.textContent = "";
+  }
+
+  function clearResults() {
+    results.classList.remove("visible");
+    analysisBody.textContent = "";
+    analysisBody.classList.remove("streaming");
+    recoList.innerHTML = "";
+    recoCard.style.display = "none";
+    eventLogBody.innerHTML = "";
+    eventLogDetails.style.display = "none";
+    hideError();
+  }
+
+  function showResults() {
+    results.classList.add("visible");
+  }
+
+  function appendEvent(type, data) {
+    eventLogDetails.style.display = "";
+    const row = document.createElement("div");
+    row.className = "event-row";
+    const snippet = typeof data === "object" ? JSON.stringify(data).slice(0, 120) : String(data);
+    row.innerHTML = `<span class="ev-type">${escHtml(type)}</span><span>${escHtml(snippet)}</span>`;
+    eventLogBody.appendChild(row);
+    eventLogBody.scrollTop = eventLogBody.scrollHeight;
+  }
+
+  function renderRecommendations(recs) {
+    if (!recs || recs.length === 0) return;
+    recoList.innerHTML = "";
+    recs.forEach(r => {
+      const li = document.createElement("li");
+      li.textContent = r;
+      recoList.appendChild(li);
+    });
+    recoCard.style.display = "";
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* ── Non-streaming request ── */
+  async function runNonStream(query) {
+    const res = await fetch("/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, stream: false, thread_id: threadId }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`HTTP ${res.status}: ${detail}`);
+    }
+
+    const data = await res.json();
+
+    if (data.thread_id) saveThread(data.thread_id);
+
+    if (data.error) {
+      showError(data.error);
+    }
+
+    showResults();
+    analysisBody.textContent = data.final_analysis || "(no analysis returned)";
+    renderRecommendations(data.recommendations);
+  }
+
+  /* ── Streaming request ── */
+  async function runStream(query) {
+    const res = await fetch("/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, stream: true, thread_id: threadId }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`HTTP ${res.status}: ${detail}`);
+    }
+
+    showResults();
+    analysisBody.classList.add("streaming");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalRecs = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // keep incomplete last line
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        let event;
+        try { event = JSON.parse(trimmed); }
+        catch { continue; }
+
+        appendEvent(event.type || "event", event);
+
+        switch (event.type) {
+          case "token":
+            analysisBody.textContent += event.content ?? "";
+            break;
+          case "final_analysis":
+            // Replace accumulated tokens with clean final text (if provided)
+            if (event.content) analysisBody.textContent = event.content;
+            break;
+          case "recommendations":
+            finalRecs = event.content ?? [];
+            break;
+          case "thread_id":
+            if (event.content) saveThread(event.content);
+            break;
+          case "error":
+            showError(event.content ?? "Unknown error");
+            break;
+          case "done":
+            if (event.thread_id) saveThread(event.thread_id);
+            if (event.recommendations) finalRecs = event.recommendations;
+            if (event.final_analysis && !analysisBody.textContent.trim()) {
+              analysisBody.textContent = event.final_analysis;
+            }
+            break;
+          default:
+            // Handle flat result objects (some backends emit the full result as one event)
+            if (event.final_analysis && !analysisBody.textContent.trim()) {
+              analysisBody.textContent = event.final_analysis;
+            }
+            if (event.recommendations?.length) finalRecs = event.recommendations;
+            if (event.thread_id) saveThread(event.thread_id);
+            if (event.error) showError(event.error);
+        }
+      }
+    }
+
+    analysisBody.classList.remove("streaming");
+    if (!analysisBody.textContent.trim()) {
+      analysisBody.textContent = "(no analysis returned)";
+    }
+    renderRecommendations(finalRecs);
+  }
+
+  /* ── Form submit ── */
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const query = queryInput.value.trim();
+    if (!query) return;
+
+    clearResults();
+    setLoading(true);
+
+    try {
+      if (streamToggle.checked) {
+        await runStream(query);
+      } else {
+        await runNonStream(query);
+      }
+    } catch (err) {
+      showError(err.message || String(err));
+      showResults(); // ensure results area is visible to show error
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  /* ── Textarea keyboard shortcut ── */
+  queryInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      form.requestSubmit();
+    }
+  });
+
+  /* ── Init ── */
+  renderThread();
+  checkHealth();
+  setInterval(checkHealth, 30_000);
+})();
+</script>
+</body>
+</html>
