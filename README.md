@@ -76,6 +76,9 @@ curl -X POST http://localhost:8000/analyze \
 Interactive docs available at `http://localhost:8000/docs` when the server is running.
 
 
+### Langsmith Trace
+
+<img width="1452" height="749" alt="langsmit_fta" src="https://github.com/user-attachments/assets/182a882b-e863-45a6-a5bd-012c119880be" />
 
 
 ### Development
